@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adrián Alcázar — Editor de Vídeo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,600;1,300&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0a0a;
+    --white: #f5f2ee;
+    --yellow: #FFE033;
+    --orange: #FF5C35;
+    --teal: #00C9B1;
+    --purple: #8B5CF6;
+    --gray: #1e1e1e;
+    --mid: #3a3a3a;
+    --muted: #888;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* Custom cursor */
+  .cursor {
+    width: 12px; height: 12px;
+    background: var(--yellow);
+    border-radius: 50%;
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    transition: transform 0.15s ease;
+    mix-blend-mode: difference;
+  }
+  .cursor-ring {
+    width: 36px; height: 36px;
+    border: 1px solid var(--yellow);
+    border-radius: 50%;
+    position: fixed;
+    pointer-events: none;
+    z-index: 9998;
+    transition: all 0.25s ease;
+    mix-blend-mode: difference;
+  }
+  body:hover .cursor { opacity: 1; }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 24px 48px;
+    display: flex; justify-content: space-between; align-items: center;
+    mix-blend-mode: difference;
+  }
+  .nav-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+    color: var(--white);
+    text-decoration: none;
+  }
+  .nav-links { display: flex; gap: 40px; list-style: none; }
+  .nav-links a {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--white);
+    text-decoration: none;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+  .nav-links a:hover { opacity: 1; }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    justify-content: flex-end;
+    padding: 0 48px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-bg {
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, #0a0a0a 0%, #0a0a0a 50%, #0d1a1a 100%);
+  }
+
+  .hero-noise {
+    position: absolute; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity: 0.5;
+  }
+
+  .hero-accent {
+    position: absolute;
+    top: -200px; right: -200px;
+    width: 700px; height: 700px;
+    background: radial-gradient(circle, rgba(0,201,177,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-accent-2 {
+    position: absolute;
+    bottom: -100px; left: 20%;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(255,224,51,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--teal);
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    position: relative;
+    z-index: 1;
+    opacity: 0;
+    animation: fadeUp 0.8s ease 0.2s forwards;
+  }
+
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(80px, 14vw, 200px);
+    line-height: 0.9;
+    letter-spacing: -2px;
+    position: relative;
+    z-index: 1;
+    opacity: 0;
+    animation: fadeUp 0.8s ease 0.4s forwards;
+  }
+  .hero-title .line-accent { color: var(--yellow); }
+
+  .hero-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: 48px;
+    position: relative;
+    z-index: 1;
+    opacity: 0;
+    animation: fadeUp 0.8s ease 0.6s forwards;
+  }
+  .hero-desc {
+    max-width: 380px;
+    font-size: 16px;
+    line-height: 1.6;
+    color: rgba(245,242,238,0.65);
+  }
+  .hero-cta {
+    display: flex; align-items: center; gap: 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--white);
+    text-decoration: none;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 16px 28px;
+    transition: all 0.3s ease;
+  }
+  .hero-cta:hover {
+    background: var(--yellow);
+    color: var(--black);
+    border-color: var(--yellow);
+  }
+  .hero-cta svg { transition: transform 0.3s ease; }
+  .hero-cta:hover svg { transform: translateX(4px); }
+
+  /* MARQUEE */
+  .marquee-wrap {
+    overflow: hidden;
+    border-top: 1px solid var(--mid);
+    border-bottom: 1px solid var(--mid);
+    background: var(--gray);
+    padding: 14px 0;
+  }
+  .marquee-track {
+    display: flex;
+    gap: 0;
+    animation: marquee 20s linear infinite;
+    white-space: nowrap;
+  }
+  .marquee-item {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 4px;
+    color: var(--muted);
+    padding: 0 48px;
+  }
+  .marquee-item span { color: var(--yellow); margin-right: 4px; }
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* SECTIONS */
+  section { padding: 120px 48px; }
+
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 48px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--mid);
+    max-width: 200px;
+  }
+
+  /* ABOUT */
+  .about { background: var(--black); }
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: start;
+  }
+  .about-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(48px, 6vw, 80px);
+    line-height: 1;
+    letter-spacing: 1px;
+  }
+  .about-title em { font-style: normal; color: var(--orange); }
+  .about-text {
+    font-size: 17px;
+    line-height: 1.8;
+    color: rgba(245,242,238,0.7);
+    margin-bottom: 32px;
+  }
+  .about-brands {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 32px;
+  }
+  .brand-pill {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 8px 16px;
+    border: 1px solid var(--mid);
+    color: var(--muted);
+    transition: all 0.3s;
+  }
+  .brand-pill:hover {
+    border-color: var(--yellow);
+    color: var(--yellow);
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    margin-top: 16px;
+  }
+  .stat-box {
+    background: var(--gray);
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-box::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+  }
+  .stat-box:nth-child(1)::before { background: var(--yellow); }
+  .stat-box:nth-child(2)::before { background: var(--orange); }
+  .stat-box:nth-child(3)::before { background: var(--teal); }
+  .stat-box:nth-child(4)::before { background: var(--purple); }
+  .stat-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px;
+    line-height: 1;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .stat-label {
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* WORK */
+  .work { background: var(--black); padding-top: 40px; }
+  .work-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 16px;
+  }
+  .project-card {
+    position: relative;
+    overflow: hidden;
+    background: var(--gray);
+    cursor: none;
+    group: true;
+  }
+  .project-card:nth-child(1) { grid-column: span 7; }
+  .project-card:nth-child(2) { grid-column: span 5; }
+  .project-card:nth-child(3) { grid-column: span 4; }
+  .project-card:nth-child(4) { grid-column: span 4; }
+  .project-card:nth-child(5) { grid-column: span 4; }
+
+  .project-thumb {
+    width: 100%;
+    aspect-ratio: 16/9;
+    object-fit: cover;
+    display: block;
+    filter: saturate(0.7) brightness(0.85);
+    transition: all 0.5s ease;
+  }
+  .project-card:hover .project-thumb {
+    filter: saturate(1) brightness(0.6);
+    transform: scale(1.03);
+  }
+
+  .project-thumb-placeholder {
+    width: 100%;
+    aspect-ratio: 16/9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    transition: all 0.5s ease;
+  }
+  .project-card:hover .project-thumb-placeholder {
+    transform: scale(1.03);
+    filter: brightness(0.6);
+  }
+
+  .project-info {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 24px;
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);
+    transform: translateY(8px);
+    transition: transform 0.3s ease;
+  }
+  .project-card:hover .project-info { transform: translateY(0); }
+
+  .project-client {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .project-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 1px;
+    line-height: 1.1;
+  }
+  .project-tag {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    margin-top: 8px;
+    border: 1px solid rgba(255,255,255,0.3);
+    opacity: 0;
+    transition: opacity 0.3s ease 0.1s;
+  }
+  .project-card:hover .project-tag { opacity: 1; }
+
+  .project-link-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+  .project-card:hover .project-link-overlay {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .play-btn {
+    width: 56px; height: 56px;
+    background: var(--yellow);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--black);
+    font-size: 18px;
+    text-decoration: none;
+    transition: transform 0.2s ease;
+  }
+  .play-btn:hover { transform: scale(1.1); }
+
+  /* SKILLS */
+  .skills { background: var(--gray); }
+  .skills-layout {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 80px;
+  }
+  .skills-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(40px, 5vw, 64px);
+    line-height: 1;
+  }
+  .skills-title span { color: var(--teal); }
+  .skills-list { display: flex; flex-direction: column; gap: 20px; }
+  .skill-item { }
+  .skill-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 14px;
+    letter-spacing: 1px;
+  }
+  .skill-name { font-weight: 600; }
+  .skill-level { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); }
+  .skill-bar {
+    height: 2px;
+    background: var(--mid);
+    position: relative;
+    overflow: hidden;
+  }
+  .skill-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+    width: 0;
+  }
+  .skill-fill.teal { background: var(--teal); }
+  .skill-fill.yellow { background: var(--yellow); }
+  .skill-fill.orange { background: var(--orange); }
+  .skill-fill.purple { background: var(--purple); }
+
+  /* EXPERIENCE */
+  .experience { background: var(--black); }
+  .exp-list { display: flex; flex-direction: column; }
+  .exp-item {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 48px;
+    padding: 40px 0;
+    border-bottom: 1px solid var(--mid);
+    position: relative;
+    transition: padding-left 0.3s ease;
+  }
+  .exp-item:hover { padding-left: 16px; }
+  .exp-item::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 40px;
+    width: 0; height: 2px;
+    background: var(--yellow);
+    transition: width 0.3s ease;
+  }
+  .exp-item:hover::before { width: 8px; }
+  .exp-period {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    padding-top: 4px;
+  }
+  .exp-company {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 1px;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .exp-role {
+    font-size: 14px;
+    color: var(--teal);
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+  .exp-desc {
+    font-size: 14px;
+    line-height: 1.7;
+    color: rgba(245,242,238,0.55);
+  }
+
+  /* CONTACT */
+  .contact {
+    background: var(--yellow);
+    color: var(--black);
+    text-align: center;
+    padding: 120px 48px;
+  }
+  .contact .section-label { color: var(--black); opacity: 0.5; justify-content: center; }
+  .contact .section-label::after { display: none; }
+  .contact-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(64px, 12vw, 160px);
+    line-height: 0.9;
+    letter-spacing: -2px;
+    margin: 24px 0 48px;
+  }
+  .contact-links {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .contact-link, button.contact-link {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--black);
+    text-decoration: none;
+    padding: 14px 28px;
+    border: 2px solid var(--black);
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  .contact-link:hover, button.contact-link:hover {
+    background: var(--black);
+    color: var(--yellow);
+  }
+
+  /* FOOTER */
+  footer {
+    background: var(--black);
+    padding: 32px 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--mid);
+  }
+  footer p {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Color accent per brand */
+  .c-laliga { color: var(--orange); }
+  .c-ea { color: var(--purple); }
+  .c-rm { color: #C9A84C; }
+  .c-freeda { color: var(--teal); }
+  .c-youtube { color: var(--yellow); }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    nav { padding: 20px 24px; }
+    .nav-links { display: none; }
+    section { padding: 80px 24px; }
+    .hero { padding: 0 24px 60px; }
+    .about-grid, .skills-layout { grid-template-columns: 1fr; gap: 48px; }
+    .exp-item { grid-template-columns: 1fr; gap: 8px; }
+    .work-grid { grid-template-columns: 1fr; }
+    .project-card:nth-child(n) { grid-column: span 1; }
+    .contact-title { font-size: 14vw; }
+    footer { flex-direction: column; gap: 12px; text-align: center; }
+    body { cursor: auto; }
+    .cursor, .cursor-ring { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Cursor -->
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">A·A</a>
+  <ul class="nav-links">
+    <li><a href="#work">Trabajo</a></li>
+    <li><a href="#about">Sobre mí</a></li>
+    <li><a href="#skills">Skills</a></li>
+    <li><a href="#contact">Contacto</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-noise"></div>
+  <div class="hero-accent"></div>
+  <div class="hero-accent-2"></div>
+
+  <div class="hero-tag">Editor de Vídeo · Madrid, España</div>
+  <h1 class="hero-title">
+    ADRIÁN<br>
+    <span class="line-accent">ALCÁZAR</span>
+  </h1>
+  <div class="hero-bottom">
+    <p class="hero-desc">
+      Más de 10 años creando contenido audiovisual para las marcas más grandes del deporte y el entretenimiento. LaLiga, Real Madrid, EA Sports.
+    </p>
+    <a href="#work" class="hero-cta">
+      Ver trabajo
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-wrap">
+  <div class="marquee-track">
+    <span class="marquee-item"><span>✦</span> LaLiga</span>
+    <span class="marquee-item"><span>✦</span> EA Sports</span>
+    <span class="marquee-item"><span>✦</span> Real Madrid</span>
+    <span class="marquee-item"><span>✦</span> Freeda</span>
+    <span class="marquee-item"><span>✦</span> LIDL</span>
+    <span class="marquee-item"><span>✦</span> Plátano de Canarias</span>
+    <span class="marquee-item"><span>✦</span> Disney+</span>
+    <span class="marquee-item"><span>✦</span> Kia</span>
+    <span class="marquee-item"><span>✦</span> +200K Subs</span>
+    <span class="marquee-item"><span>✦</span> 200M+ Views</span>
+    <!-- duplicated for seamless loop -->
+    <span class="marquee-item"><span>✦</span> LaLiga</span>
+    <span class="marquee-item"><span>✦</span> EA Sports</span>
+    <span class="marquee-item"><span>✦</span> Real Madrid</span>
+    <span class="marquee-item"><span>✦</span> Freeda</span>
+    <span class="marquee-item"><span>✦</span> LIDL</span>
+    <span class="marquee-item"><span>✦</span> Plátano de Canarias</span>
+    <span class="marquee-item"><span>✦</span> Disney+</span>
+    <span class="marquee-item"><span>✦</span> Kia</span>
+    <span class="marquee-item"><span>✦</span> +200K Subs</span>
+    <span class="marquee-item"><span>✦</span> 200M+ Views</span>
+  </div>
+</div>
+
+<!-- WORK -->
+<section class="work" id="work">
+  <div class="section-label">Proyectos destacados</div>
+  <div class="work-grid">
+
+    <!-- Card 1 - LaLiga EA FC 25 Recopilatorio (PRIMERO, grande) -->
+    <div class="project-card reveal">
+      <div class="project-thumb-placeholder" style="background: linear-gradient(135deg, #1a0a00 0%, #3d1a00 100%);">
+        <span style="font-size: 80px; opacity:0.10;">⚽</span>
+      </div>
+      <div class="project-link-overlay">
+        <a href="https://youtu.be/SSOUlJgdBVU" target="_blank" class="play-btn" title="Ver en YouTube">▶</a>
+      </div>
+      <div class="project-info">
+        <div class="project-client c-laliga">LaLiga / EA FC 25</div>
+        <div class="project-title">Recopilatorio 2025</div>
+        <span class="project-tag">Edición · Postproducción · Campaña</span>
+      </div>
+    </div>
+
+    <!-- Card 2 - Freeda -->
+    <div class="project-card reveal" style="transition-delay: 0.1s;">
+      <div class="project-thumb-placeholder" style="background: linear-gradient(135deg, #001a18 0%, #003d33 100%);">
+        <span style="font-size: 60px; opacity:0.12;">✨</span>
+      </div>
+      <div class="project-link-overlay">
+        <a href="https://www.instagram.com/tv/CVThKD6rvmI/" target="_blank" class="play-btn" title="Ver en Instagram">▶</a>
+      </div>
+      <div class="project-info">
+        <div class="project-client c-freeda">Freeda</div>
+        <div class="project-title">Alba Reche — Armani Exchange</div>
+        <span class="project-tag">Edición · Audio · Colorización</span>
+      </div>
+    </div>
+
+    <!-- Card 3 - Real Madrid x Mbappe POTM -->
+    <div class="project-card reveal" style="transition-delay: 0.15s;">
+      <div class="project-thumb-placeholder" style="background: linear-gradient(135deg, #1a1400 0%, #3a2d00 100%);">
+        <span style="font-size: 56px; opacity:0.12;">👑</span>
+      </div>
+      <div class="project-link-overlay">
+        <a href="https://x.com/realmadrid/status/1981397708268327038" target="_blank" class="play-btn" title="Ver en X">▶</a>
+      </div>
+      <div class="project-info">
+        <div class="project-client c-rm">Real Madrid × EA Sports</div>
+        <div class="project-title">Mbappé — Player of the Month</div>
+        <span class="project-tag">Edición · Motion</span>
+      </div>
+    </div>
+
+    <!-- Card 4 - LaLiga Campaña Legados -->
+    <div class="project-card reveal" style="transition-delay: 0.2s;">
+      <div class="project-thumb-placeholder" style="background: linear-gradient(135deg, #1a0500 0%, #3d0f00 100%);">
+        <span style="font-size: 56px; opacity:0.12;">🏆</span>
+      </div>
+      <div class="project-link-overlay">
+        <a href="https://www.instagram.com/reel/DV2H2P1kVf2/" target="_blank" class="play-btn" title="Ver en Instagram">▶</a>
+      </div>
+      <div class="project-info">
+        <div class="project-client c-laliga">LaLiga</div>
+        <div class="project-title">Campaña Legados</div>
+        <span class="project-tag">Edición · Postproducción</span>
+      </div>
+    </div>
+
+    <!-- Card 5 - LaLiga FC Pro TikTok -->
+    <div class="project-card reveal" style="transition-delay: 0.25s;">
+      <div class="project-thumb-placeholder" style="background: linear-gradient(135deg, #1a0a00 0%, #3d1a00 100%);">
+        <span style="font-size: 56px; opacity:0.12;">⚽</span>
+      </div>
+      <div class="project-link-overlay">
+        <a href="https://www.tiktok.com/@laligafcpro" target="_blank" class="play-btn" title="Ver en TikTok">▶</a>
+      </div>
+      <div class="project-info">
+        <div class="project-client c-laliga">LaLiga FC Pro</div>
+        <div class="project-title">Contenido Viral TikTok</div>
+        <span class="project-tag">Edición · Guión · RRSS</span>
+      </div>
+    </div>
+
+    <!-- Card 6 - Kia -->
+    <div class="project-card reveal" style="grid-column: span 4; transition-delay: 0.3s;">
+      <div class="project-thumb-placeholder" style="background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3d 100%);">
+        <span style="font-size: 56px; opacity:0.12;">🚗</span>
+      </div>
+      <div class="project-link-overlay">
+        <a href="https://www.instagram.com/reels/CmYfM8HDlD1/" target="_blank" class="play-btn" title="Ver en Instagram">▶</a>
+      </div>
+      <div class="project-info">
+        <div class="project-client" style="color: var(--purple);">Kia te inspira</div>
+        <div class="project-title">Dariel Ventura × KIA</div>
+        <span class="project-tag">Edición · Audio · Color</span>
+      </div>
+    </div>
+
+    <!-- Card 7 - Disney+ -->
+    <div class="project-card reveal" style="grid-column: span 4; transition-delay: 0.35s;">
+      <div class="project-thumb-placeholder" style="background: linear-gradient(135deg, #00081a 0%, #001040 100%);">
+        <span style="font-size: 56px; opacity:0.12;">🎬</span>
+      </div>
+      <div class="project-link-overlay">
+        <a href="https://twitter.com/DisneyPlusES/status/1516410672296472590" target="_blank" class="play-btn" title="Ver en Twitter">▶</a>
+      </div>
+      <div class="project-info">
+        <div class="project-client" style="color: #4A9FFF;">Disney+ España</div>
+        <div class="project-title">Día Mundial de Los Simpsons</div>
+        <span class="project-tag">Edición · Motion</span>
+      </div>
+    </div>
+
+    <!-- Card 8 - Thief Hunter YouTube -->
+    <div class="project-card reveal" style="grid-column: span 4; transition-delay: 0.4s;">
+      <div class="project-thumb-placeholder" style="background: linear-gradient(135deg, #1a1200 0%, #2e1f00 100%);">
+        <span style="font-size: 56px; opacity:0.10;">▶</span>
+      </div>
+      <div class="project-link-overlay">
+        <a href="https://www.youtube.com/@Thief_Hunter" target="_blank" class="play-btn" title="Ver canal">▶</a>
+      </div>
+      <div class="project-info">
+        <div class="project-client c-youtube">YouTube — Thief Hunter</div>
+        <div class="project-title">0 → 200K subs · 200M+ Reproducciones</div>
+        <span class="project-tag">Shorts · Guión · Gestión de canal</span>
+      </div>
+    </div>
+
+    <!-- Card 9 - LIDL -->
+    <div class="project-card reveal" style="grid-column: span 6; transition-delay: 0.45s;">
+      <div class="project-thumb-placeholder" style="background: linear-gradient(135deg, #1a0f00 0%, #3d2500 100%);">
+        <span style="font-size: 80px; opacity:0.10;">🛒</span>
+      </div>
+      <div class="project-link-overlay">
+        <a href="https://youtu.be/Y_0SG1TCdug?si=TDGg3vxLsGHXBzvi" target="_blank" class="play-btn" title="Ver en YouTube">▶</a>
+      </div>
+      <div class="project-info">
+        <div class="project-client" style="color: #FFD700;">LIDL</div>
+        <div class="project-title">Los Frescos de LIDL — Podcast</div>
+        <span class="project-tag">Edición · Postproducción</span>
+      </div>
+    </div>
+
+    <!-- Card 10 - Plátano de Canarias -->
+    <div class="project-card reveal" style="grid-column: span 6; transition-delay: 0.5s;">
+      <div class="project-thumb-placeholder" style="background: linear-gradient(135deg, #1a1800 0%, #3d3800 100%);">
+        <span style="font-size: 80px; opacity:0.10;">🍌</span>
+      </div>
+      <div class="project-link-overlay">
+        <a href="https://www.youtube.com/watch?v=4dG0oIgnhn4" target="_blank" class="play-btn" title="Ver en YouTube">▶</a>
+      </div>
+      <div class="project-info">
+        <div class="project-client" style="color: #F5C842;">Plátano de Canarias</div>
+        <div class="project-title">Campaña Plátano de Canarias</div>
+        <span class="project-tag">Edición · Postproducción</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section class="about" id="about">
+  <div class="section-label">Sobre mí</div>
+  <div class="about-grid">
+    <div class="reveal">
+      <h2 class="about-title">
+        CONTAR<br>
+        HISTORIAS<br>
+        <em>EN IMAGEN</em>
+      </h2>
+      <div class="about-brands">
+        <span class="brand-pill">LaLiga</span>
+        <span class="brand-pill">EA Sports</span>
+        <span class="brand-pill">Real Madrid</span>
+        <span class="brand-pill">Freeda</span>
+        <span class="brand-pill">LIDL</span>
+        <span class="brand-pill">Plátano de Canarias</span>
+        <span class="brand-pill">Disney+</span>
+        <span class="brand-pill">Kia</span>
+      </div>
+    </div>
+    <div class="reveal" style="transition-delay: 0.15s;">
+      <p class="about-text">
+        Editor de vídeo y Coordinador de Postproducción con más de 10 años de experiencia en producción audiovisual profesional. Especializado en contenido deportivo y digital para las marcas más exigentes del sector.
+      </p>
+      <p class="about-text">
+        Mi trabajo va desde la edición técnica hasta la coordinación de equipos de postproducción, pasando por la estrategia de contenido en redes sociales. Graduado en Comunicación Audiovisual por la UCM, con Máster en VFX por Lightbox Academy.
+      </p>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-num" style="color: var(--yellow);">10+</div>
+          <div class="stat-label">Años de experiencia</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num" style="color: var(--orange);">200M+</div>
+          <div class="stat-label">Reproducciones acumuladas</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num" style="color: var(--teal);">200K</div>
+          <div class="stat-label">Suscriptores gestionados</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num" style="color: var(--purple);">5+</div>
+          <div class="stat-label">Grandes marcas</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SKILLS -->
+<section class="skills" id="skills">
+  <div class="section-label">Habilidades</div>
+  <div class="skills-layout">
+    <div class="reveal">
+      <h2 class="skills-title">TOOLS<br>OF THE<br><span>TRADE</span></h2>
+    </div>
+    <div class="skills-list reveal" style="transition-delay: 0.15s;" id="skillsList">
+      <div class="skill-item">
+        <div class="skill-header">
+          <span class="skill-name">Adobe Premiere Pro</span>
+          <span class="skill-level">Avanzado</span>
+        </div>
+        <div class="skill-bar"><div class="skill-fill teal" data-width="95"></div></div>
+      </div>
+      <div class="skill-item">
+        <div class="skill-header">
+          <span class="skill-name">After Effects</span>
+          <span class="skill-level">Avanzado</span>
+        </div>
+        <div class="skill-bar"><div class="skill-fill yellow" data-width="90"></div></div>
+      </div>
+      <div class="skill-item">
+        <div class="skill-header">
+          <span class="skill-name">DaVinci Resolve</span>
+          <span class="skill-level">Intermedio–Avanzado</span>
+        </div>
+        <div class="skill-bar"><div class="skill-fill orange" data-width="75"></div></div>
+      </div>
+      <div class="skill-item">
+        <div class="skill-header">
+          <span class="skill-name">Nuke X</span>
+          <span class="skill-level">Intermedio</span>
+        </div>
+        <div class="skill-bar"><div class="skill-fill purple" data-width="60"></div></div>
+      </div>
+      <div class="skill-item">
+        <div class="skill-header">
+          <span class="skill-name">Houdini SFX</span>
+          <span class="skill-level">Intermedio</span>
+        </div>
+        <div class="skill-bar"><div class="skill-fill teal" data-width="55"></div></div>
+      </div>
+      <div class="skill-item">
+        <div class="skill-header">
+          <span class="skill-name">AVID Media Composer</span>
+          <span class="skill-level">Profesional</span>
+        </div>
+        <div class="skill-bar"><div class="skill-fill yellow" data-width="80"></div></div>
+      </div>
+      <div class="skill-item">
+        <div class="skill-header">
+          <span class="skill-name">Photoshop / Lightroom</span>
+          <span class="skill-level">Intermedio</span>
+        </div>
+        <div class="skill-bar"><div class="skill-fill orange" data-width="65"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EXPERIENCE -->
+<section class="experience" id="experience">
+  <div class="section-label">Experiencia</div>
+  <div class="exp-list">
+    <div class="exp-item reveal">
+      <div class="exp-period">2020 — Actualidad</div>
+      <div>
+        <div class="exp-company">MonkeyMinds <span style="color: var(--orange); font-size:18px;">× LaLiga / EA Sports</span></div>
+        <div class="exp-role">Editor de Vídeo &amp; Coordinador de Postproducción</div>
+        <div class="exp-desc">Edición y postproducción de contenido oficial para LaLiga y EA Sports. Coordinación de equipos y pipelines multiplataforma. Estrategia de contenido en redes sociales para LALIGA FC Pro.</div>
+      </div>
+    </div>
+    <div class="exp-item reveal" style="transition-delay: 0.1s;">
+      <div class="exp-period">2025</div>
+      <div>
+        <div class="exp-company">Thief Hunter <span style="color: var(--yellow); font-size:18px;">× YouTube</span></div>
+        <div class="exp-role">Gestor de Canal &amp; Editor</div>
+        <div class="exp-desc">Gestión integral del canal desde 0 hasta 200.000 suscriptores. Edición, guión, copywriting y estrategia editorial. Más de 200 millones de reproducciones acumuladas.</div>
+      </div>
+    </div>
+    <div class="exp-item reveal" style="transition-delay: 0.15s;">
+      <div class="exp-period">2017 — 2018</div>
+      <div>
+        <div class="exp-company">Full Fiction <span style="color: var(--muted); font-size:18px;">× SalGorda TV</span></div>
+        <div class="exp-role">Editor de Vídeo</div>
+        <div class="exp-desc">Edición de contenido audiovisual para producciones de entretenimiento televisivo.</div>
+      </div>
+    </div>
+    <div class="exp-item reveal" style="transition-delay: 0.2s;">
+      <div class="exp-period">2016 — 2017</div>
+      <div>
+        <div class="exp-company">Cosmo TV</div>
+        <div class="exp-role">Editor de Vídeo</div>
+        <div class="exp-desc">Edición de piezas audiovisuales para cadena de televisión nacional. Manejo profesional de AVID Media Composer.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section class="contact" id="contact">
+  <div class="section-label">Hablemos</div>
+  <h2 class="contact-title">¿TIENES<br>UN PROYECTO?</h2>
+  <div class="contact-links">
+    <a href="mailto:a.alcazar.b@gmail.com" class="contact-link" id="emailBtn" onclick="if(!this.href.startsWith('mailto')){return false;}">✉ a.alcazar.b@gmail.com</a>
+    <button class="contact-link" onclick="navigator.clipboard.writeText('a.alcazar.b@gmail.com').then(()=>{this.textContent='✓ ¡Copiado!';setTimeout(()=>{this.textContent='📋 Copiar email'},2000)})">📋 Copiar email</button>
+    <a href="tel:+34690257313" class="contact-link">📞 +34 690 257 313</a>
+    <a href="https://linkedin.com/in/adrianalcazar" target="_blank" class="contact-link">in LinkedIn</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>© 2026 Adrián Alcázar Bruno</p>
+  <p>Editor de Vídeo · Madrid, España</p>
+</footer>
+
+<script>
+  // Custom cursor
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursorRing');
+  let mx = 0, my = 0, rx = 0, ry = 0;
+
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    cursor.style.left = mx - 6 + 'px';
+    cursor.style.top = my - 6 + 'px';
+  });
+
+  function animRing() {
+    rx += (mx - rx) * 0.12;
+    ry += (my - ry) * 0.12;
+    ring.style.left = rx - 18 + 'px';
+    ring.style.top = ry - 18 + 'px';
+    requestAnimationFrame(animRing);
+  }
+  animRing();
+
+  document.querySelectorAll('a, button').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      cursor.style.transform = 'scale(2)';
+      ring.style.transform = 'scale(1.5)';
+    });
+    el.addEventListener('mouseleave', () => {
+      cursor.style.transform = 'scale(1)';
+      ring.style.transform = 'scale(1)';
+    });
+  });
+
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal');
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        // Animate skill bars when visible
+        e.target.querySelectorAll('.skill-fill').forEach(bar => {
+          bar.style.width = bar.dataset.width + '%';
+        });
+      }
+    });
+  }, { threshold: 0.1 });
+
+  reveals.forEach(el => obs.observe(el));
+
+  // Also observe skill bars globally
+  const skillsSection = document.getElementById('skillsList');
+  if (skillsSection) {
+    const skillObs = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.querySelectorAll('.skill-fill').forEach(bar => {
+            setTimeout(() => { bar.style.width = bar.dataset.width + '%'; }, 200);
+          });
+        }
+      });
+    }, { threshold: 0.2 });
+    skillObs.observe(skillsSection);
+  }
+</script>
+</body>
+</html>
