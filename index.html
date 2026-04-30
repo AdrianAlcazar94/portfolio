@@ -501,6 +501,7 @@
     font-size: 18px;
     text-decoration: none;
     transition: transform 0.2s ease;
+    pointer-events: auto;
   }
   .play-btn:hover { transform: scale(1.1); }
 
@@ -671,6 +672,18 @@
   .c-rm { color: #C9A84C; }
   .c-freeda { color: var(--teal); }
   .c-youtube { color: var(--yellow); }
+
+  /* Touch devices: show play button overlay (no hover available) */
+  @media (hover: none) {
+    .project-link-overlay {
+      opacity: 1;
+      pointer-events: auto;
+      background: rgba(0,0,0,0.25);
+    }
+    .project-card:hover .project-link-overlay {
+      opacity: 1;
+    }
+  }
 
   /* Responsive */
   @media (max-width: 768px) {
